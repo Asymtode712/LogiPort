@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const vehicleTypes = [
   { type: 'Van', icon: '🚐', capacity: 'Up to 1000 kg', volume: '10 m³' },
@@ -18,11 +19,43 @@ function LogisticsBooking() {
   const [volume, setVolume] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [price, setPrice] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically send the booking data to your backend
-    console.log('Booking submitted');
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await axios.post('http://localhost:5000/bookings/create', {
+        pickup,
+        dropoff,
+        vehicle,
+        date,
+        time,
+        goods,
+        weight,
+        volume,
+        specialInstructions,
+        price
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // Assumes token is stored in localStorage
+        }
+      });
+      setSuccess('Booking created successfully!');
+      setLoading(false);
+      // Redirect to a booking confirmation page or user's bookings list
+      setTimeout(() => navigate('/tracking'), 2000);
+    } catch (error) {
+      setError(error.response && error.response.data && error.response.data.message ? error.response.data.message : 'An error occurred while creating the booking');
+      setLoading(false);
+    }
   };
 
   const calculatePrice = () => {
@@ -38,6 +71,18 @@ function LogisticsBooking() {
           <h2 className="text-3xl font-bold text-white">Book Your Logistics Service</h2>
           <p className="mt-2 text-blue-100">Fast, reliable transportation for your goods</p>
         </div>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Success!</strong>
+            <span className="block sm:inline"> {success}</span>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -166,11 +211,12 @@ function LogisticsBooking() {
             )}
           </div>
           <div className="flex items-center justify-between">
-            <button
+          <button
               type="submit"
               className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              disabled={loading}
             >
-              Book Now
+              {loading ? 'Booking...' : 'Book Now'}
             </button>
             <Link to="/tracking" className="text-blue-600 hover:text-blue-800">
               Track your shipment

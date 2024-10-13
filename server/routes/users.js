@@ -14,13 +14,18 @@ router.post('/register', async (req, res) => {
 
     const user = new User({ name, email, password })
     await user.save()
+    console.log('User saved successfully:', user);
+
+    // Generate token
+    const token = generateToken(user._id)
+    console.log('Token generated:', token);
 
     // Send back JWT token after successful registration
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
-      token: generateToken(user._id)
+      token: token
     })
   } catch (error) {
     res.status(500).json({ message: error.message })
